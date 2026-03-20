@@ -8,10 +8,15 @@ const sendEmail = async (options) => {
   const user = process.env.SMTP_USER ? process.env.SMTP_USER.replace(/^["']|["']$/g, '') : undefined;
   const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/^["']|["']$/g, '') : undefined;
   
+  // Render Free Tier heavily blocks default outbound SMTP port 587. 
+  // Brevo seamlessly supports port 2525 to completely bypass this block!
+  let smtpPort = parseInt(process.env.SMTP_PORT || '2525', 10);
+  if (smtpPort === 587) smtpPort = 2525;
+
   const transporter = nodemailer.createTransport({
     host: host,
-    port: parseInt(process.env.SMTP_PORT || '587', 10),
-    secure: parseInt(process.env.SMTP_PORT, 10) === 465,
+    port: smtpPort,
+    secure: smtpPort === 465,
     auth: {
       user: user,
       pass: pass,
