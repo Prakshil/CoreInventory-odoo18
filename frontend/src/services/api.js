@@ -3,7 +3,7 @@ import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -18,10 +18,10 @@ api.interceptors.response.use(
   (response) => {
     // Show success toast for non-GET requests if there's no custom flag disabling it
     const method = response.config.method?.toLowerCase();
-    
+
     // Ignore auth endpoints from default "Success" generic messages to allow custom handling in UI
     const isAuth = response.config.url?.includes('/auth/');
-    
+
     if (['post', 'put', 'patch', 'delete'].includes(method) && !isAuth) {
       const msg = response.data?.message || 'Operation successful';
       toast.success(msg);
@@ -30,7 +30,7 @@ api.interceptors.response.use(
   },
   (error) => {
     const errorMsg = error.response?.data?.error || error.message || 'An unexpected error occurred';
-    
+
     // Don't show toast for 401s if we're instantly redirecting
     if (error.response?.status === 401) {
       Cookies.remove('token');
@@ -38,7 +38,7 @@ api.interceptors.response.use(
     } else {
       toast.error(errorMsg);
     }
-    
+
     return Promise.reject(error);
   }
 );
