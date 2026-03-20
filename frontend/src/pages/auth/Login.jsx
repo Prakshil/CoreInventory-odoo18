@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 
@@ -62,7 +63,7 @@ const Login = () => {
             <input id="remember-me" type="checkbox" className="h-4 w-4 text-primary focus:ring-primary/20 border-slate-300 rounded cursor-pointer" />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-600 cursor-pointer">Remember me</label>
           </div>
-          <a href="/forgot-password" className="text-sm font-medium text-primary hover:text-blue-700 transition-colors">Forgot your password?</a>
+          <Link to="/forgot-password" className="text-sm font-medium text-primary hover:text-blue-700 transition-colors">Forgot your password?</Link>
         </div>
         <div>
           <button type="submit" disabled={isSubmitting}
@@ -75,7 +76,7 @@ const Login = () => {
             ) : ( <> Sign In <ArrowRight className="ml-2 h-4 w-4" /> </> )}
           </button>
         </div>
-        <p className="text-center text-sm text-slate-500">Don't have an account? <a href="/signup" className="text-primary font-medium hover:text-blue-700 transition-colors">Sign up</a></p>
+        <p className="text-center text-sm text-slate-500">Don't have an account? <Link to="/signup" className="text-primary font-medium hover:text-blue-700 transition-colors">Sign up</Link></p>
       </form>
     </div>
   );
