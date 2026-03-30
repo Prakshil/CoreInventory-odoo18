@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx prisma generate && node --trace-uncaught --trace-warnings src/server.js",
-    "dev": "nodemon --trace-warnings src/server.js",
+    "dev": "npx prisma generate && nodemon --trace-warnings src/server.js",
     "seed": "npx prisma db seed",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "prisma generate"

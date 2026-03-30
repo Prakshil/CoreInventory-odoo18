@@ -23,6 +23,27 @@ exports.createUser = async (req, res) => {
       select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true },
     });
     await logAudit({ req, action: 'ADMIN_USER_CREATE', entity: 'User', entityId: user.id, meta: { email, role: user.role } });
+
+    // Welcome notification for admin-created user accounts as well.
+    try {
+      const hasUnreadWelcome = await prisma.notification.findFirst({
+        where: { userId: user.id, type: 'WELCOME', isRead: false },
+        select: { id: true },
+      });
+
+      if (!hasUnreadWelcome) {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            message: 'Welcome to CoreInventory',
+            type: 'WELCOME',
+          },
+        });
+      }
+    } catch (notificationErr) {
+      console.error('Failed to create welcome notification (admin user create):', notificationErr);
+    }
+
     res.status(201).json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });

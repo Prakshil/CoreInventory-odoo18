@@ -17,6 +17,7 @@ model User {
   resetOtp  String?
   otpExpiry DateTime?
   auditLogs AuditLog[]
+  notifications Notification[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -229,6 +230,19 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([userId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  type      String   @default("WELCOME")
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 enum DocStatus {
