@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { 
   LayoutDashboard, 
   Package, 
@@ -27,7 +28,42 @@ import {
 const DashboardLayout = () => {
   const { logout, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const location = useLocation();
+
+  const unreadCount = useMemo(() => {
+    return notifications.reduce((acc, n) => acc + (n.isRead ? 0 : 1), 0);
+  }, [notifications]);
+
+  const loadNotifications = async () => {
+    if (!user?.id) return;
+    setLoadingNotifications(true);
+    try {
+      const res = await api.get('/notifications');
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+      setNotifications([]);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  // Load notifications once the user is available (so the unread dot appears immediately).
+  useEffect(() => {
+    if (!user?.id) return;
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Refresh when opening the dropdown.
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notificationsOpen]);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -128,11 +164,83 @@ const DashboardLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 border-l border-slate-200 pl-4 ml-4">
-            <button className="relative p-2 text-slate-400 hover:text-textNavy transition-colors rounded-full hover:bg-slate-100">
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent ring-2 ring-card"></span>
+          <div className="flex items-center space-x-4 border-l border-slate-200 pl-4 ml-4 relative">
+            <button
+              type="button"
+              className={`relative p-2 transition-colors rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                unreadCount > 0 ? 'text-primary' : 'text-slate-400 hover:text-textNavy'
+              }`}
+              onClick={() => setNotificationsOpen((open) => !open)}
+            >
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent ring-2 ring-card" />
+              )}
               <Bell className="h-5 w-5" />
             </button>
+            {notificationsOpen && (
+              <div className="absolute right-0 top-12 mt-1 w-80 bg-card border border-slate-200 rounded-2xl shadow-xl py-2 z-20">
+                <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-textNavy">Notifications</p>
+                  <button
+                    type="button"
+                    className="text-xs text-slate-400 hover:text-slate-600"
+                    onClick={() => setNotificationsOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">
+                    {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+                  </span>
+                  <button
+                    type="button"
+                    className={`text-xs font-medium ${
+                      unreadCount > 0 ? 'text-primary hover:text-primary/90' : 'text-slate-400 cursor-not-allowed'
+                    }`}
+                    onClick={async () => {
+                      if (unreadCount <= 0) return;
+                      await api.patch('/notifications/read-all');
+                      await loadNotifications();
+                    }}
+                    disabled={unreadCount <= 0}
+                  >
+                    Mark all as read
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                  {loadingNotifications ? (
+                    <div className="px-4 py-4 text-sm text-slate-500">Loading...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="px-4 py-3 hover:bg-slate-50 transition-colors cursor-default">
+                      <p className="text-sm font-medium text-textNavy">No notifications</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        New alerts about low stock, pending deliveries, and other activity will appear here.
+                      </p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => (
+                      <div
+                        key={n.id}
+                        className={`px-4 py-3 hover:bg-slate-50 transition-colors cursor-default flex items-start gap-3 ${
+                          !n.isRead ? 'bg-primary/5' : ''
+                        }`}
+                      >
+                        <div
+                          className={`mt-1 h-2 w-2 rounded-full ${n.isRead ? 'bg-slate-300' : 'bg-accent'}`}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-textNavy break-words">{n.message}</p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3 cursor-pointer p-1 rounded-full hover:bg-slate-50 pr-3 transition-colors">
               <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white font-bold text-sm shadow-sm">
                 {user?.name?.charAt(0) || 'U'}

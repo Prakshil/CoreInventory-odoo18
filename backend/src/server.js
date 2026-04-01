@@ -31,6 +31,7 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/stock', require('./routes/stockRoutes'));
 app.use('/api/suppliers', require('./routes/supplierRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

@@ -17,6 +17,28 @@ exports.signup = async (req, res) => {
       data: { email, password: hashed, name, role: 'VIEWER' },
       select: { id: true, email: true, name: true, role: true, createdAt: true }
     });
+
+    // Create a welcome notification for the newly created account.
+    // Note: This should not block signup if notifications fail for any reason.
+    try {
+      const hasUnreadWelcome = await prisma.notification.findFirst({
+        where: { userId: user.id, type: 'WELCOME', isRead: false },
+        select: { id: true },
+      });
+
+      if (!hasUnreadWelcome) {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            message: 'Welcome to CoreInventory',
+            type: 'WELCOME',
+          },
+        });
+      }
+    } catch (notificationErr) {
+      console.error('Failed to create welcome notification (signup):', notificationErr);
+    }
+
     res.status(201).json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -38,6 +60,28 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
+
+    // Create a welcome notification for any user login.
+    // Again, don't break login if notification creation fails.
+    try {
+      const hasUnreadWelcome = await prisma.notification.findFirst({
+        where: { userId: user.id, type: 'WELCOME', isRead: false },
+        select: { id: true },
+      });
+
+      if (!hasUnreadWelcome) {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            message: 'Welcome to CoreInventory',
+            type: 'WELCOME',
+          },
+        });
+      }
+    } catch (notificationErr) {
+      console.error('Failed to create welcome notification (login):', notificationErr);
+    }
+
     res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
   } catch (err) {
     res.status(500).json({ error: err.message });
